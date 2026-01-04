@@ -1,0 +1,10 @@
+vit-horse-model/
+
+horse-dataset/
+
+__pycache__/
+*.pyc
+
+payload.json
+
+.venv/
