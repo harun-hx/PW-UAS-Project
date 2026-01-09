@@ -5,18 +5,27 @@ import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+# -----------------------------
+# App setup
+# -----------------------------
 app = Flask(__name__)
 CORS(app)
 
+# -----------------------------
+# Hugging Face config (NEW ROUTER)
+# -----------------------------
 MODEL_ID = "harun-767/dog-breed-classifier"
-HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
+HF_API_URL = f"https://router.huggingface.co/hf-inference/models/{MODEL_ID}"
 HF_TOKEN = os.getenv("HF_TOKEN")
 
+# -----------------------------
+# Routes
+# -----------------------------
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({
         "status": "ok",
-        "message": "🐶 Dog Breed AI (Remote Inference) is running"
+        "message": "🐶 Dog Breed AI (HF Router Inference) is running"
     })
 
 
@@ -35,7 +44,7 @@ def predict():
         b64_string = re.sub(r"^data:image/.+;base64,", "", b64_string)
         b64_string += "=" * (-len(b64_string) % 4)
 
-        # ---- HF expects base64 inside JSON inputs ----
+        # ---- HF Router expects base64 in JSON ----
         payload = {
             "inputs": b64_string
         }
@@ -51,24 +60,23 @@ def predict():
             timeout=120
         )
 
-        # ---- HARD DEBUG (important) ----
-        if response.text.strip() == "":
+        # ---- Empty body guard ----
+        if not response.text.strip():
             return jsonify({
-                "error": "Empty response from Hugging Face",
+                "error": "Empty response from Hugging Face Router",
                 "status_code": response.status_code
             }), 502
 
-        # Try parsing JSON safely
+        # ---- Safe JSON parse ----
         try:
             hf_result = response.json()
         except Exception:
             return jsonify({
-                "error": "Non-JSON response from Hugging Face",
-                "raw": response.text[:500],
-                "status_code": response.status_code
+                "error": "Non-JSON response from Hugging Face Router",
+                "raw": response.text[:500]
             }), 502
 
-        # HF error payload
+        # ---- HF error payload ----
         if isinstance(hf_result, dict) and "error" in hf_result:
             return jsonify({
                 "error": "Hugging Face inference error",
@@ -110,6 +118,9 @@ def predict():
         }), 500
 
 
+# -----------------------------
+# Local run (Railway uses gunicorn)
+# -----------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
