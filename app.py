@@ -57,10 +57,11 @@ def predict():
             HF_API_URL,
             headers={
                 "Authorization": f"Bearer {HF_TOKEN}",
-                "Content-Type": "application/octet-stream"
+                "Content-Type": "application/octet-stream",
+                "X-Wait-For-Model": "true"   # 🔥 THIS FIXES 502
             },
             data=image_bytes,
-            timeout=60
+            timeout=120
         )
 
         # --- 5. Parse HF response ---
